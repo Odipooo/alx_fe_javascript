@@ -6,10 +6,23 @@
     <title>Dynamic Quote Generator</title>
   </head>
   <body>
-   <h1>Dynamic Quote Generator</h1>
-  <div id="quoteDisplay">Click "Show New Quote" to get inspired!</div>
+    <h1>Dynamic Quote Generator</h1>
+
+  <div id="quoteDisplay">Click "Show New Quote" to display one.</div>
   <button id="newQuote">Show New Quote</button>
-    
+
+  <h3>Add a New Quote</h3>
+  <input type="text" id="newQuoteText" placeholder="Enter a new quote" />
+  <input type="text" id="newQuoteCategory" placeholder="Enter quote category" />
+  <button onclick="addQuote()">Add Quote</button>
+
+  <h3>Export / Import Quotes</h3>
+  
+  <button id="exportQuotes" onclick="exportToJsonFile()">Export Quotes</button>
+
+  
+  <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+
     <script src="script.js"></script>
   </body>
   </html>
