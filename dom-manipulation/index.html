@@ -26,6 +26,15 @@
   <h3>Export / Import Quotes</h3>
   <button id="exportQuotes" onclick="exportToJsonFile()">Export Quotes</button>
   <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+  <select id="categoryFilter" onchange="filterQuotes()">
+  <option value="all">All Categories</option>
+</select>
+
+<div id="quoteDisplay"></div>
+<input type="text" id="newQuoteText" />
+<input type="text" id="newQuoteCategory" />
+<button onclick="addQuote()">Add Quote</button>
+<button id="newQuote">Show New Quote</button>
 
     <script src="script.js"></script>
   </body>
