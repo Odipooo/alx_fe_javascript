@@ -1,126 +1,61 @@
 let quotes = [];
+let serverQuotes = []; 
 
 function loadQuotes() {
   const stored = localStorage.getItem("quotes");
-  quotes = stored ? JSON.parse(stored) : [
-    { text: "The best way to predict the future is to invent it.", category: "Motivation" },
-    { text: "Life is 10% what happens to us and 90% how we react to it.", category: "Life" },
-    { text: "Do or do not. There is no try.", category: "Wisdom" }
-  ];
+  quotes = stored ? JSON.parse(stored) : [];
   saveQuotes();
 }
 
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
-
-function saveFilterPreference(category) {
-  localStorage.setItem("selectedCategory", category);
-}
-
-function getFilterPreference() {
-  return localStorage.getItem("selectedCategory") || "all";
-}
-
-function showRandomQuote() {
-  const selectedCategory = document.getElementById("categoryFilter").value;
-  const filtered = selectedCategory === "all"
-    ? quotes
-    : quotes.filter(q => q.category === selectedCategory);
-
-  const quoteDisplay = document.getElementById("quoteDisplay");
-  if (filtered.length === 0) {
-    quoteDisplay.textContent = "No quotes available in this category.";
-    return;
-  }
-
-  const random = Math.floor(Math.random() * filtered.length);
-  const quote = filtered[random];
-
-  quoteDisplay.innerHTML = `"${quote.text}"<br><small>- ${quote.category}</small>`;
-  sessionStorage.setItem("lastViewedQuote", JSON.stringify(quote));
-}
-
-function addQuote() {
-  const text = document.getElementById("newQuoteText").value.trim();
-  const category = document.getElementById("newQuoteCategory").value.trim();
-
-  if (!text || !category) {
-    alert("Please enter both quote and category.");
-    return;
-  }
-
-  quotes.push({ text, category });
-  saveQuotes();
-  document.getElementById("newQuoteText").value = "";
-  document.getElementById("newQuoteCategory").value = "";
-
-  populateCategories(); 
-  alert("Quote added!");
-}
-
-function exportToJsonFile() {
-  const data = JSON.stringify(quotes, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "quotes.json";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function importFromJsonFile(event) {
-  const fileReader = new FileReader();
-  fileReader.onload = function (e) {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (Array.isArray(imported)) {
-        quotes.push(...imported);
-        saveQuotes();
-        populateCategories();
-        alert("Quotes imported!");
-      } else {
-        alert("Invalid JSON structure.");
-      }
-    } catch {
-      alert("Invalid JSON file.");
-    }
-  };
-  fileReader.readAsText(event.target.files[0]);
+function fetchFromServer() {
+  
+  serverQuotes = [
+    { text: "Stay hungry, stay foolish.", category: "Inspiration" },
+    { text: "Knowledge is power.", category: "Education" },
+  ];
+  console.log("Fetched from server:", serverQuotes);
 }
 
 
-function populateCategories() {
-  const select = document.getElementById("categoryFilter");
-  const categories = [...new Set(quotes.map(q => q.category))];
-  const selected = getFilterPreference();
+function syncWithServer() {
+  fetchFromServer();
 
-  select.innerHTML = `<option value="all">All Categories</option>`;
-  categories.forEach(cat => {
-    const option = document.createElement("option");
-    option.value = cat;
-    option.textContent = cat;
-    if (cat === selected) option.selected = true;
-    select.appendChild(option);
-  });
-}
+  const localJSON = JSON.stringify(quotes);
+  const serverJSON = JSON.stringify(serverQuotes);
 
-
-function filterQuotes() {
-  const selected = document.getElementById("categoryFilter").value;
-  saveFilterPreference(selected);
-  document.getElementById("quoteDisplay").textContent = "";
-}
-
-function restoreLastViewedQuote() {
-  const last = sessionStorage.getItem("lastViewedQuote");
-  if (last) {
-    const q = JSON.parse(last);
-    document.getElementById("quoteDisplay").innerHTML = `"${q.text}"<br><small>- ${q.category}</small>`;
+  if (localJSON !== serverJSON) {
+    
+    quotes = [...serverQuotes]; 
+    saveQuotes();
+    populateCategories();
+    notifyUser("Quotes synced from server. Local changes were overwritten.");
   }
 }
 
+
+function notifyUser(message) {
+  const existing = document.getElementById("syncNotice");
+  if (existing) existing.remove();
+
+  const notice = document.createElement("div");
+  notice.id = "syncNotice";
+  notice.textContent = message;
+  notice.style.background = "#fff3cd";
+  notice.style.border = "1px solid #ffeeba";
+  notice.style.padding = "10px";
+  notice.style.margin = "10px 0";
+  notice.style.borderRadius = "5px";
+  notice.style.color = "#856404";
+
+  document.body.insertBefore(notice, document.body.firstChild);
+
+  setTimeout(() => {
+    if (notice) notice.remove();
+  }, 6000);
+}
 document.addEventListener("DOMContentLoaded", () => {
   loadQuotes();
   populateCategories();
@@ -128,6 +63,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const selected = getFilterPreference();
   document.getElementById("categoryFilter").value = selected;
-
   document.getElementById("newQuote").addEventListener("click", showRandomQuote);
+
+  
+  setInterval(syncWithServer, 30000); 
 });
+function syncWithServer() {
+  fetchFromServer();
+  const hasConflict = JSON.stringify(quotes) !== JSON.stringify(serverQuotes);
+
+  if (hasConflict) {
+    if (confirm("Server data differs from local. Overwrite local with server?")) {
+      quotes = [...serverQuotes];
+      saveQuotes();
+      populateCategories();
+      notifyUser("Local data replaced with server data.");
+    } else {
+      notifyUser("Sync skipped. Local data retained.");
+    }
+  }
+}
+async function fetchFromServer() {
+  const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=2');
+  const data = await res.json();
+  serverQuotes = data.map(post => ({
+    text: post.title,
+    category: "General"
+  }));
+}
